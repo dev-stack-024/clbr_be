@@ -4,6 +4,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const dotenv = require('dotenv');
 const userRoutes = require('../server/routes/userRoutes');
+const businessRoutes = require('../server/routes/businessRoutes');
 
 
 dotenv.config();
@@ -28,6 +29,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/users', userRoutes);
+app.use('/api/business', businessRoutes);
 
 
 

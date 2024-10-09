@@ -9,7 +9,13 @@ const userSchema = new mongoose.Schema({
   bio: { type: String },
   joinedDate: { type: Date, default: Date.now },
   badges: { type: Array, default: [] },
-  favorites: { type: Array, default: [] }
+  favorites: { type: Array, default: [] },
+  role: {
+    type: String,
+    enum: ['user', 'businessOwner', 'admin'],
+    default: 'user',
+    required: true
+  }
 });
 
 // Hash password before saving the user
@@ -22,3 +28,4 @@ userSchema.pre('save', async function(next) {
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
+
