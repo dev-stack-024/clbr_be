@@ -17,7 +17,7 @@ exports.createBusiness = async (req, res) => {
       address,
       phone,
       description,
-      images: images.split(',').map(image => image.trim()), 
+      images: images, 
       businessOwner,
       location: { 
         type: 'Point',
