@@ -40,7 +40,6 @@ mongoose.connect(process.env.MONGO_URI)
     console.log("Failed to connect MongoDB:", err);
   });
 
-// Routes
 app.get('/', (req, res) => {
   res.send('Crowdsourced Local Business Reviews API');
 });
