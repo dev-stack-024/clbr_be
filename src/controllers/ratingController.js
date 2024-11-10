@@ -5,8 +5,7 @@ const Rating = require('../models/ratingModel');
 exports.rateBusiness = async (req, res) => {
   try {
     const { businessId, rating } = req.body;
-    const userId = req.userId; // Assuming req.userId is set by authentication middleware
-
+    const userId = req.userId;
     // Find the existing rating or create a new one
     const updatedRating = await Rating.findOneAndUpdate(
       { business: businessId, user: userId }, // Find the rating by business and user

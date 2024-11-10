@@ -1,5 +1,6 @@
 // src/controllers/businessController.js
 const Business = require('../models/businessModel');
+const Rating = require('../models/ratingModel');
 
 // src/controllers/businessController.js
 exports.createBusiness = async (req, res) => {
@@ -17,11 +18,11 @@ exports.createBusiness = async (req, res) => {
       address,
       phone,
       description,
-      images: images, 
+      images: images,
       businessOwner,
-      location: { 
+      location: {
         type: 'Point',
-        coordinates: [longitude, latitude], 
+        coordinates: [longitude, latitude],
       },
     });
 
@@ -37,7 +38,7 @@ exports.createBusiness = async (req, res) => {
 exports.getAllBusinesses = async (req, res) => {
   try {
     const { userId, latitude, longitude } = req.query;
-
+    // console.log(req)
     let businesses;
 
     if (userId) {
@@ -45,7 +46,6 @@ exports.getAllBusinesses = async (req, res) => {
       businesses = await Business.find({ businessOwner: userId });
     } else if (latitude && longitude) {
       // Fetch nearby businesses based on current location
-      // Assuming you have a method to find nearby businesses; otherwise, you can implement it based on your criteria
       businesses = await Business.find({
         location: {
           $geoWithin: {
@@ -58,7 +58,35 @@ exports.getAllBusinesses = async (req, res) => {
       businesses = await Business.find();
     }
 
-    res.status(200).json(businesses);
+    // Add ratings information (average rating and own rating if userId is provided)
+    const businessesWithRatings = await Promise.all(
+      businesses.map(async (business) => {
+        // Fetch all ratings for the business
+        const ratings = await Rating.find({ business: business._id });
+
+        // console.log(ratings)
+
+        // Calculate the average rating
+        const averageRating = ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+          : null;
+
+        // Fetch the user's rating for this business (if userId is provided)
+        const ownRating = req.userId
+          ? await Rating.findOne({ business: business._id, user: req.userId })
+          : null;
+
+        // Return the business with the added rating information
+        return {
+          ...business.toObject(),
+          averageRating,  // Include the average rating
+          ownRating: ownRating ? ownRating.rating : null,  // Include the user's rating if available
+        };
+      })
+    );
+
+    // Send the response with the businesses including the ratings
+    res.status(200).json(businessesWithRatings);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching businesses', error });
   }

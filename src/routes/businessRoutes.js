@@ -6,10 +6,10 @@ const authMiddleware = require('../middleware/authMiddleware'); // Import the mi
 
 
 
-router.post('/', authMiddleware, businessController.createBusiness); 
-router.get('/', businessController.getAllBusinesses); 
-router.get('/:id', authMiddleware, businessController.getBusinessById); 
+router.post('/', authMiddleware, businessController.createBusiness);
+router.get('/', authMiddleware, businessController.getAllBusinesses);
+router.get('/:id', authMiddleware, businessController.getBusinessById);
 router.put('/:id', authMiddleware, businessController.updateBusiness);
-router.delete('/:id', authMiddleware, businessController.deleteBusiness); 
+router.delete('/:id', authMiddleware, businessController.deleteBusiness);
 
 module.exports = router;

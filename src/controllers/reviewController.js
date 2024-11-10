@@ -22,3 +22,24 @@ exports.createReview = async (req, res) => {
     return res.status(500).json({ message: 'Error creating review', error: error.message });
   }
 };
+
+
+exports.getReviewsByBusinessId = async (req, res) => {
+  try {
+    const { businessId } = req.params;
+
+    // Find reviews by business ID and populate the user field with user information
+    const reviews = await Review.find({ business: businessId })
+      .populate('user', 'name avatar email') // Populate user details (select fields as needed)
+      .exec();
+
+    if (!reviews) {
+      return res.status(404).json({ message: 'No reviews found for this business.' });
+    }
+
+    return res.status(200).json({ reviews });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return res.status(500).json({ message: 'Error fetching reviews', error: error.message });
+  }
+};

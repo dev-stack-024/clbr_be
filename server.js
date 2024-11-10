@@ -7,6 +7,8 @@ const path = require('path');
 const userRoutes = require('./src/routes/userRoutes');
 const businessRoutes = require('./src/routes/businessRoutes');
 const uploadRoutes = require('./src/routes/uploadRoutes');
+const ratingRoutes = require('./src/routes/ratingRoute');
+const reviewRoutes = require('./src/routes/reviewRoutes');
 
 dotenv.config();
 
@@ -47,6 +49,8 @@ app.get('/', (req, res) => {
 app.use('/api/users', userRoutes);
 app.use('/api/business', businessRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/rate', ratingRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Serve static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
