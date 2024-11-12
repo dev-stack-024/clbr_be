@@ -30,7 +30,7 @@ exports.getReviewsByBusinessId = async (req, res) => {
 
     // Find reviews by business ID and populate the user field with user information
     const reviews = await Review.find({ business: businessId })
-      .populate('user', 'name avatar email') // Populate user details (select fields as needed)
+      .populate('user', 'name profilePictureURL email') // Populate user details (select fields as needed)
       .exec();
 
     if (!reviews) {
