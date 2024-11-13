@@ -49,7 +49,7 @@ exports.getAllBusinesses = async (req, res) => {
       businesses = await Business.find({
         location: {
           $geoWithin: {
-            $centerSphere: [[longitude, latitude], 10 / 3963.2] // 10 miles radius, adjust as needed
+            $centerSphere: [[longitude, latitude], 1000 / 3963.2] // 10 miles radius, adjust as needed
           }
         }
       });
