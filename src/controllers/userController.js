@@ -10,7 +10,7 @@ exports.registerUser = async (req, res) => {
     await user.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Failed to register user" });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -27,7 +27,7 @@ exports.loginUser = async (req, res) => {
 
     return res.status(200).json({ user, token });
   } catch (err) {
-    return res.status(500).json({ error: "Login failed" });
+    return res.status(500).json({ error: err.message });
   }
 };
 
