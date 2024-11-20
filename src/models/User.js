@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema({
     enum: ['user', 'businessOwner', 'admin'],
     default: 'user',
     required: true
-  }
+  },
+  otp: { type: String },
+  otpExpiry: { type: Date },
+  resetPasswordOTP: { type: String },
+  resetPasswordOTPExpiry: { type: Date }
 });
 
 // Hash password before saving the user
