@@ -204,3 +204,31 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+exports.getAllUsers = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const users = await User.find()
+      .select('-passwordHash -resetPasswordOTP -resetPasswordOTPExpiry -otp -otpExpiry')
+      .skip(skip)
+      .limit(parseInt(limit))
+      .exec();
+
+    const totalUsers = await User.countDocuments();
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      users,
+      currentPage: parseInt(page),
+      totalPages,
+      totalUsers,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching users', error });
+  }
+};

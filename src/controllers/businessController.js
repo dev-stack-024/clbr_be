@@ -38,7 +38,7 @@ exports.createBusiness = async (req, res) => {
 exports.getAllBusinesses = async (req, res) => {
   try {
     const { userId, latitude, longitude } = req.query;
-    // console.log(req)
+
     let businesses;
 
     if (userId) {
@@ -54,39 +54,10 @@ exports.getAllBusinesses = async (req, res) => {
         }
       });
     } else {
-      // If neither userId nor location is provided, return all businesses
       businesses = await Business.find();
     }
 
-    // Add ratings information (average rating and own rating if userId is provided)
-    const businessesWithRatings = await Promise.all(
-      businesses.map(async (business) => {
-        // Fetch all ratings for the business
-        const ratings = await Rating.find({ business: business._id });
-
-        // console.log(ratings)
-
-        // Calculate the average rating
-        const averageRating = ratings.length > 0
-          ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
-          : null;
-
-        // Fetch the user's rating for this business (if userId is provided)
-        const ownRating = req.userId
-          ? await Rating.findOne({ business: business._id, user: req.userId })
-          : null;
-
-        // Return the business with the added rating information
-        return {
-          ...business.toObject(),
-          averageRating,  // Include the average rating
-          ownRating: ownRating ? ownRating.rating : null,  // Include the user's rating if available
-        };
-      })
-    );
-
-    // Send the response with the businesses including the ratings
-    res.status(200).json(businessesWithRatings);
+    res.status(200).json(businesses);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching businesses', error });
   }
@@ -96,14 +67,37 @@ exports.getAllBusinesses = async (req, res) => {
 exports.getBusinessById = async (req, res) => {
   try {
     const business = await Business.findById(req.params.id);
+
     if (!business) {
       return res.status(404).json({ message: 'Business not found' });
     }
-    res.status(200).json(business);
+
+    // Fetch all ratings for the business
+    const ratings = await Rating.find({ business: business._id });
+
+    // Calculate average rating
+    const averageRating = ratings.length > 0
+      ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+      : null;
+
+    // Fetch the user's rating for this business (if userId is provided)
+    const ownRating = req.userId
+      ? await Rating.findOne({ business: business._id, user: req.userId })
+      : null;
+
+    // Combine business data with ratings
+    const businessWithRatings = {
+      ...business.toObject(),
+      averageRating,
+      ownRating: ownRating ? ownRating.rating : null,
+    };
+
+    res.status(200).json(businessWithRatings);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching business', error });
   }
 };
+
 
 // Update a business by ID
 exports.updateBusiness = async (req, res) => {
@@ -133,6 +127,50 @@ exports.deleteBusiness = async (req, res) => {
 };
 
 
+exports.fetchAllBusinesses = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
+    const businesses = await Business.find()
+      .skip(skip)
+      .limit(parseInt(limit))
+      .exec();
+
+    const totalBusinesses = await Business.countDocuments();
+    const totalPages = Math.ceil(totalBusinesses / limit);
+
+    const businessesWithRatings = await Promise.all(
+      businesses.map(async (business) => {
+        const ratings = await Rating.find({ business: business._id });
+        const averageRating = ratings.length > 0
+          ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+          : null;
+
+        const ownRating = req.userId
+          ? await Rating.findOne({ business: business._id, user: req.userId })
+          : null;
+
+        return {
+          ...business.toObject(),
+          averageRating,
+          ownRating: ownRating ? ownRating.rating : null,
+        };
+      })
+    );
+
+    res.status(200).json({
+      businesses: businessesWithRatings,
+      currentPage: parseInt(page),
+      totalPages,
+      totalBusinesses,
+      hasNextPage: page < totalPages,
+      hasPrevPage: page > 1
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching businesses', error });
+  }
+};
 
 
 // Rest of the controller functions remain the same
