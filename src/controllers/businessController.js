@@ -42,14 +42,12 @@ exports.getAllBusinesses = async (req, res) => {
     let businesses;
 
     if (userId) {
-      // Fetch businesses associated with the userId
       businesses = await Business.find({ businessOwner: userId });
     } else if (latitude && longitude) {
-      // Fetch nearby businesses based on current location
       businesses = await Business.find({
         location: {
           $geoWithin: {
-            $centerSphere: [[longitude, latitude], 1000 / 3963.2] // 10 miles radius, adjust as needed
+            $centerSphere: [[longitude, latitude], 1000 / 3963.2]
           }
         }
       });
@@ -85,7 +83,6 @@ exports.getBusinessById = async (req, res) => {
       ? await Rating.findOne({ business: business._id, user: req.userId })
       : null;
 
-    // Combine business data with ratings
     const businessWithRatings = {
       ...business.toObject(),
       averageRating,
@@ -99,21 +96,49 @@ exports.getBusinessById = async (req, res) => {
 };
 
 
-// Update a business by ID
 exports.updateBusiness = async (req, res) => {
   try {
     const { id } = req.params;
-    const business = await Business.findByIdAndUpdate(id, req.body, { new: true });
-    if (!business) {
+    const { imagesToRemove, images, ...updateData } = req.body;
+
+    const currentBusiness = await Business.findById(id);
+    
+    if (!currentBusiness) {
       return res.status(404).json({ message: 'Business not found' });
     }
-    res.status(200).json({ message: 'Business updated successfully', business });
+
+    let updatedImages = [...currentBusiness.images];
+    
+    if (Array.isArray(imagesToRemove) && imagesToRemove.length > 0) {
+      updatedImages = updatedImages.filter(
+        image => !imagesToRemove.includes(image)
+      );
+    }
+
+    if (Array.isArray(images)) {
+      updatedImages = images;
+    }
+
+    updateData.images = updatedImages;
+
+    const updatedBusiness = await Business.findByIdAndUpdate(
+      id, 
+      updateData,
+      { new: true }
+    );
+
+    res.status(200).json({ 
+      message: 'Business updated successfully', 
+      business: updatedBusiness 
+    });
+    
   } catch (error) {
     res.status(400).json({ message: 'Error updating business', error });
   }
 };
 
-// Delete a business by ID
+
+
 exports.deleteBusiness = async (req, res) => {
   try {
     const business = await Business.findByIdAndDelete(req.params.id);
@@ -172,5 +197,3 @@ exports.fetchAllBusinesses = async (req, res) => {
   }
 };
 
-
-// Rest of the controller functions remain the same
