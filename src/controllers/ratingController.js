@@ -1,5 +1,6 @@
 // src/controllers/ratingController.js
 const Rating = require('../models/ratingModel');
+const Business = require('../models/businessModel');
 
 // Create or update a rating for a business
 exports.rateBusiness = async (req, res) => {
@@ -12,6 +13,16 @@ exports.rateBusiness = async (req, res) => {
       { rating }, // Update the rating value
       { new: true, upsert: true } // Create if not found (upsert: true)
     );
+
+    const ratings = await Rating.find({ business: businessId });
+
+    // Calculate average rating
+    const averageRating = ratings.length > 0
+      ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+      : null;
+
+    await Business.findOneAndUpdate({ _id: businessId }, { averageRating });
+    console.log('Average Rating:', averageRating);
 
     return res.status(200).json({ message: 'Rating saved', rating: updatedRating });
   } catch (error) {

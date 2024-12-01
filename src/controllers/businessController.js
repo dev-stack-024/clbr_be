@@ -61,6 +61,114 @@ exports.getAllBusinesses = async (req, res) => {
   }
 };
 
+exports.getAllBusinessesOptm = async (req, res) => {
+  try {
+    const {
+      userId,
+      latitude,
+      longitude,
+      search,
+      parking,
+      wheelchairAccessible,
+      petFriendly,
+      wifi,
+      outdoorSeating,
+      creditCardAccepted,
+      delivery,
+      sort,
+      type,
+      page = 1,
+      limit = 10
+    } = req.query;
+
+    // If only latitude and longitude are provided
+    if (latitude && longitude && !search && !type && !parking && !wheelchairAccessible &&
+      !petFriendly && !wifi && !outdoorSeating && !creditCardAccepted && !delivery && !userId) {
+      const nearbyBusinesses = await Business.find({
+        location: {
+          $geoWithin: {
+            $centerSphere: [[longitude, latitude], 1000 / 3963.2]
+          }
+        }
+      })
+        .sort({ averageRating: -1 })
+        .limit(parseInt(limit));
+
+      return res.status(200).json({
+        businesses: nearbyBusinesses,
+        pagination: {
+          total: nearbyBusinesses.length,
+          page: 1,
+          pages: 1
+        }
+      });
+    }
+
+    // Build query based on provided filters
+    let query = {};
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    if (userId) query.businessOwner = userId;
+    if (type) query.type = type;
+
+    if (latitude && longitude) {
+      query.location = {
+        $geoWithin: {
+          $centerSphere: [[longitude, latitude], 1000 / 3963.2]
+        }
+      };
+    }
+
+    // Add amenities filters if provided
+    // Only add amenity filters when they are explicitly set to true
+    const amenitiesFilter = {};
+    if (parking === 'true') amenitiesFilter['amenities.parking'] = true;
+    if (wheelchairAccessible === 'true') amenitiesFilter['amenities.wheelchairAccessible'] = true;
+    if (petFriendly === 'true') amenitiesFilter['amenities.petFriendly'] = true;
+    if (wifi === 'true') amenitiesFilter['amenities.wifi'] = true;
+    if (outdoorSeating === 'true') amenitiesFilter['amenities.outdoorSeating'] = true;
+    if (creditCardAccepted === 'true') amenitiesFilter['amenities.creditCardAccepted'] = true;
+    if (delivery === 'true') amenitiesFilter['amenities.delivery'] = true;
+
+
+    Object.assign(query, amenitiesFilter);
+
+    let sortOption = sort === 'rating' ? { averageRating: -1 } :
+      sort === 'newest' ? { createdAt: -1 } :
+        { averageRating: -1 }; // Default sort by rating
+
+    const skip = (page - 1) * limit;
+
+    const businesses = await Business.find(query)
+      .sort(sortOption)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .populate('businessOwner', 'name email');
+
+    const total = await Business.countDocuments(query);
+
+    res.status(200).json({
+      businesses,
+      pagination: {
+        total,
+        page: parseInt(page),
+        pages: Math.ceil(total / limit)
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching businesses', error });
+  }
+};
+
+
+
 // Get a single business by ID
 exports.getBusinessById = async (req, res) => {
   try {
@@ -74,9 +182,9 @@ exports.getBusinessById = async (req, res) => {
     const ratings = await Rating.find({ business: business._id });
 
     // Calculate average rating
-    const averageRating = ratings.length > 0
-      ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
-      : null;
+    // const averageRating = ratings.length > 0
+    //   ? ratings.reduce((sum, rating) => sum + rating.rating, 0) / ratings.length
+    //   : null;
 
     // Fetch the user's rating for this business (if userId is provided)
     const ownRating = req.userId
@@ -85,7 +193,7 @@ exports.getBusinessById = async (req, res) => {
 
     const businessWithRatings = {
       ...business.toObject(),
-      averageRating,
+      // averageRating,
       ownRating: ownRating ? ownRating.rating : null,
     };
 
@@ -102,13 +210,13 @@ exports.updateBusiness = async (req, res) => {
     const { imagesToRemove, images, ...updateData } = req.body;
 
     const currentBusiness = await Business.findById(id);
-    
+
     if (!currentBusiness) {
       return res.status(404).json({ message: 'Business not found' });
     }
 
     let updatedImages = [...currentBusiness.images];
-    
+
     if (Array.isArray(imagesToRemove) && imagesToRemove.length > 0) {
       updatedImages = updatedImages.filter(
         image => !imagesToRemove.includes(image)
@@ -122,16 +230,16 @@ exports.updateBusiness = async (req, res) => {
     updateData.images = updatedImages;
 
     const updatedBusiness = await Business.findByIdAndUpdate(
-      id, 
+      id,
       updateData,
       { new: true }
     );
 
-    res.status(200).json({ 
-      message: 'Business updated successfully', 
-      business: updatedBusiness 
+    res.status(200).json({
+      message: 'Business updated successfully',
+      business: updatedBusiness
     });
-    
+
   } catch (error) {
     res.status(400).json({ message: 'Error updating business', error });
   }
