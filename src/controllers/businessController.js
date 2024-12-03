@@ -5,13 +5,14 @@ const Rating = require('../models/ratingModel');
 // src/controllers/businessController.js
 exports.createBusiness = async (req, res) => {
   try {
-    const { name, type, latitude, longitude, address, phone, description, images } = req.body;
+    const { name, type, latitude, longitude, address, phone, description, images, amenities } = req.body;
 
     // Validate inputs (Consider using a validation library here)
 
     // Ensure the businessOwner is the ID of the logged-in user
     const businessOwner = req.userId; // Assuming you have middleware that sets req.userId
 
+    console.log(name, amenities)
     const newBusiness = new Business({
       name,
       type,
@@ -24,6 +25,7 @@ exports.createBusiness = async (req, res) => {
         type: 'Point',
         coordinates: [longitude, latitude],
       },
+      amenities
     });
 
     await newBusiness.save();
