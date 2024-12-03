@@ -15,6 +15,10 @@ exports.createReview = async (req, res) => {
       return res.status(404).json({ message: 'Business not found' });
     }
 
+    if (!req.body.reviewText || req.body.reviewText.trim() === '') {
+      return res.status(400).json({ message: 'Review text is required' });
+    }
+
     // Fetch business owner details
     const businessOwner = await User.findById(business.businessOwner);
     if (!businessOwner) {
@@ -60,7 +64,7 @@ exports.createReview = async (req, res) => {
         </div>
       `
     };
-    
+
 
     console.log('Sending email to:', emailData);
 
