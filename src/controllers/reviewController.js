@@ -3,6 +3,7 @@ const Review = require('../models/reviewModel');
 const Business = require('../models/businessModel');
 const User = require('../models/User');
 const sendEmail = require('../utils/emailService');
+const { default: mongoose } = require('mongoose');
 
 exports.createReview = async (req, res) => {
   try {
@@ -78,7 +79,7 @@ exports.createReview = async (req, res) => {
 };
 
 
-exports.getReviewsByBusinessId = async (req, res) => {
+exports.getReviewsByBusinessIdd = async (req, res) => {
   try {
     const { businessId } = req.params;
 
@@ -97,3 +98,69 @@ exports.getReviewsByBusinessId = async (req, res) => {
     return res.status(500).json({ message: 'Error fetching reviews', error: error.message });
   }
 };
+
+exports.getReviewsByBusinessId = async (req, res) => {
+  try {
+    const { businessId } = req.params;
+
+    const reviews = await Review.aggregate([
+      {
+        $match: { business: new mongoose.Types.ObjectId(businessId) }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userDetails'
+        }
+      },
+      {
+        $lookup: {
+          from: 'ratings',
+          let: { userId: '$user', businessId: '$business' },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ['$user', '$$userId'] },
+                    { $eq: ['$business', '$$businessId'] }
+                  ]
+                }
+              }
+            }
+          ],
+          as: 'userRating'
+        }
+      },
+      {
+        $project: {
+          reviewText: 1,
+          createdAt: 1,
+          images: 1,
+          userDetails: { $arrayElemAt: ['$userDetails', 0] },
+          rating: { $arrayElemAt: ['$userRating.rating', 0] }
+        }
+      },
+      {
+        $project: {
+          reviewText: 1,
+          createdAt: 1,
+          images: 1,
+          rating: 1,
+          'userDetails.name': 1,
+          'userDetails.email': 1,
+          'userDetails.profilePictureURL': 1
+        }
+      }
+    ]);
+
+    return res.status(200).json({ reviews });
+  } catch (error) {
+    console.error('Error fetching reviews:', error);
+    return res.status(500).json({ message: 'Error fetching reviews', error: error.message });
+  }
+};
+
+
