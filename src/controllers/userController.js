@@ -55,13 +55,35 @@ exports.registerUser = async (req, res) => {
 };
 
 // Login User
+// exports.loginUser = async (req, res) => {
+//   const { email, password } = req.body;
+//   try {
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(404).json({ error: "User not found" });
+//     const isMatch = await bcrypt.compare(password, user.passwordHash);
+//     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+
+//     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
+
+//     return res.status(200).json({ user, token });
+//   } catch (err) {
+//     return res.status(500).json({ error: err.message });
+//   }
+// };
+
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User not found" });
+
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+
+    // Check if user is active
+    if (!user.isActive) {
+      return res.status(403).json({ error: "Your account is blocked by admin." });
+    }
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
 
@@ -70,6 +92,7 @@ exports.loginUser = async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 };
+
 
 
 exports.getProfile = async (req, res) => {
@@ -232,3 +255,32 @@ exports.getAllUsers = async (req, res) => {
     res.status(500).json({ message: 'Error fetching users', error });
   }
 };
+
+
+// Add this new controller function
+exports.toggleUserStatus = async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Toggle the isActive status
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.status(200).json({
+      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error toggling user status', error: error.message });
+  }
+};
+
